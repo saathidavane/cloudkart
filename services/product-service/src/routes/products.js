@@ -27,9 +27,12 @@ router.get('/', async (req, res) => {
     const total = countResult[0].total;
 
     // Add pagination
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
-
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 12;
+    const offsetNum = (pageNum - 1) * limitNum;
+    
+    query += ` ORDER BY created_at DESC LIMIT ${limitNum} OFFSET ${offsetNum}`;
+    
     const [products] = await db.execute(query, params);
 
     res.json({

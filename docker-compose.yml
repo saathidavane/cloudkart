@@ -1,0 +1,205 @@
+# Docker Compose v3.8 - Production-style local orchestration
+version: '3.8'
+
+# Named volumes persist data between container restarts
+# Without this, MySQL data is lost every time the container stops
+volumes:
+  mysql_data:
+    driver: local
+
+# Custom network gives containers predictable hostnames
+networks:
+  cloudcart_network:
+    driver: bridge
+
+services:
+
+  # ============================================================
+  # MySQL Database
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: cloudcart-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      # Mount SQL files to be auto-executed on first run
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      # Named volume for data persistence
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"  # Expose for local debugging via MySQL Workbench
+    networks:
+      - cloudcart_network
+    # Health check: Compose waits for MySQL to be READY before starting services
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ============================================================
+  # User Service
+  # ============================================================
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: cloudcart-user-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: mysql           # Container name as hostname
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3001:3001"
+    networks:
+      - cloudcart_network
+    depends_on:
+      mysql:
+        condition: service_healthy   # Don't start until MySQL is healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================
+  # Product Service
+  # ============================================================
+  product-service:
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
+    container_name: cloudcart-product-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3002:3002"
+    networks:
+      - cloudcart_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================
+  # Cart Service
+  # ============================================================
+  cart-service:
+    build:
+      context: ./services/cart-service
+      dockerfile: Dockerfile
+    container_name: cloudcart-cart-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3003:3003"
+    networks:
+      - cloudcart_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================
+  # Order Service
+  # ============================================================
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: cloudcart-order-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3004:3004"
+    networks:
+      - cloudcart_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================
+  # Frontend (React + Nginx)
+  # In Docker Compose, the frontend makes direct calls to the
+  # backend services using the host machine's exposed ports.
+  # In production (Kubernetes), Nginx proxies API calls internally.
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # These build args are baked into the React bundle at build time
+        # They point to localhost because the browser makes these requests
+        VITE_USER_API: http://localhost:3001
+        VITE_PRODUCT_API: http://localhost:3002
+        VITE_CART_API: http://localhost:3003
+        VITE_ORDER_API: http://localhost:3004
+    container_name: cloudcart-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"   # Host port 5173 → container port 80 (Nginx)
+    networks:
+      - cloudcart_network
+    depends_on:
+      - user-service
+      - product-service
+      - cart-service
+      - order-service

@@ -1,0 +1,21 @@
+# .dockerignore prevents these files from being sent to Docker daemon
+# Critical for security (no secrets) and performance (smaller build context)
+
+node_modules
+npm-debug.log
+.npm
+*.log
+
+# Development files
+.env
+.env.local
+.env.*
+
+# Git files
+.git
+.gitignore
+
+# Editor files
+.vscode
+.idea
+*.swp

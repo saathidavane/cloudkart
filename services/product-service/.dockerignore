@@ -1,0 +1,18 @@
+node_modules
+npm-debug.log
+.npm
+*.log
+
+# Development files
+.env
+.env.local
+.env.*
+
+# Git files
+.git
+.gitignore
+
+# Editor files
+.vscode
+.idea
+*.swp

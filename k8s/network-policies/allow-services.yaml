@@ -8,14 +8,14 @@ spec:
   podSelector: {}
 
   policyTypes:
-    - Egress
+  - Egress
 
   egress:
-    - to:
-        - ipBlock:
-            cidr: 10.96.0.10/32
-      ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53
+  - to:
+    - ipBlock:
+        cidr: 10.244.120.85/32
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

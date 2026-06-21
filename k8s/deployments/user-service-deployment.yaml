@@ -5,23 +5,56 @@ metadata:
   namespace: cloudcart
   labels:
     app: user-service
+    version: "1.0"
+  annotations:
+    # Track deployment metadata
+    deployment.kubernetes.io/revision: "1"
 spec:
-  replicas: 2   # Run 2 identical pods for high availability
+  replicas: 2
+  
+  # Selector: which Pods does this Deployment manage?
   selector:
     matchLabels:
       app: user-service
+  
+  # Rolling Update Strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # At most 1 Pod can be unavailable during an update
+      maxUnavailable: 1
+      # At most 1 extra Pod can exist during an update
+      maxSurge: 1
+      # With 2 replicas: old pod is removed, new pod is added one at a time
+      # = Zero downtime updates
+  
   template:
     metadata:
       labels:
         app: user-service
+        version: "1.0"
     spec:
+      # Security context at Pod level
+      # Prevents privilege escalation for all containers in this Pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      # Graceful shutdown: wait 30s before killing the container
+      # Gives the app time to finish in-flight requests
+      terminationGracePeriodSeconds: 30
+      
       containers:
         - name: user-service
           image: cloudcart/user-service:latest
-          # imagePullPolicy: Never = use local Minikube image (not pull from registry)
-          imagePullPolicy: Never
+          imagePullPolicy: Never   # Use local Minikube image
+          
           ports:
             - containerPort: 3001
+              name: http
+          
+          # Environment variables from ConfigMap and Secret
           env:
             - name: PORT
               value: "3001"
@@ -45,6 +78,11 @@ spec:
                 configMapKeyRef:
                   name: cloudcart-config
                   key: NODE_ENV
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cloudcart-config
+                  key: FRONTEND_URL
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -55,3 +93,67 @@ spec:
                 secretKeyRef:
                   name: cloudcart-secrets
                   key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cloudcart-secrets
+                  key: JWT_SECRET
+          
+          # Resource management
+          resources:
+            requests:
+              # Kubernetes MUST have this much available on a node to schedule this Pod
+              cpu: "100m"      # 0.1 CPU core
+              memory: "128Mi"  # 128 MiB
+            limits:
+              # Pod is throttled (CPU) or killed (memory) if it exceeds these
+              cpu: "500m"      # 0.5 CPU core
+              memory: "512Mi"  # 512 MiB
+          
+          # Startup Probe: checks app has started before other probes begin
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            # failureThreshold * periodSeconds = max startup time
+            failureThreshold: 30
+            periodSeconds: 2       # Check every 2 seconds
+            # Total allowed startup time: 30 * 2 = 60 seconds
+          
+          # Readiness Probe: removes Pod from Service if DB connection fails
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5   # Wait 5s after startup probe before checking
+            periodSeconds: 10        # Check every 10 seconds
+            failureThreshold: 3      # Remove from service after 3 consecutive failures
+            successThreshold: 1      # Add back after 1 success
+            timeoutSeconds: 3        # Fail if no response in 3s
+          
+          # Liveness Probe: restarts Pod if it becomes deadlocked
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          
+          # Security context at container level
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL  # Remove all Linux capabilities
+          
+          # Temporary filesystem for Node.js (needed for readOnlyRootFilesystem)
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      
+      volumes:
+        - name: tmp
+          emptyDir: {}

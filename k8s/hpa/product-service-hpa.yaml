@@ -1,0 +1,45 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: product-service-hpa
+  namespace: cloudcart
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: product-service
+  
+  minReplicas: 2    # Never scale below 2 (for HA)
+  maxReplicas: 10   # Never scale above 10
+  
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          # Scale up when average CPU across all pods exceeds 70%
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  # Scaling behavior controls
+  behavior:
+    scaleUp:
+      # Scale up quickly during load spikes
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 3      # Add at most 3 pods at once
+          periodSeconds: 60
+    scaleDown:
+      # Scale down slowly (prevent thrashing)
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+        - type: Pods
+          value: 1      # Remove at most 1 pod at a time
+          periodSeconds: 60

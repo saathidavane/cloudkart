@@ -34,6 +34,7 @@ spec:
         app: product-service
         version: "1.0"
     spec:
+      serviceAccountName: cloudcart-app
       # Security context at Pod level
       # Prevents privilege escalation for all containers in this Pod
       securityContext:

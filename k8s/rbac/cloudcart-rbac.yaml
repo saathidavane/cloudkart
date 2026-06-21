@@ -1,0 +1,60 @@
+# ServiceAccount: an identity for our application pods
+# This is different from a human user account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloudcart-app
+  namespace: cloudcart
+
+---
+# Role: defines what actions are allowed on which resources
+# This Role is namespaced (only applies within 'cloudcart' namespace)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cloudcart-app-role
+  namespace: cloudcart
+rules:
+  # Allow the application to read its own config
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  # Allow reading secrets (needed by the app)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  # Allow reading its own pod info (useful for health checks)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+---
+# RoleBinding: binds the Role to the ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cloudcart-app-rolebinding
+  namespace: cloudcart
+subjects:
+  - kind: ServiceAccount
+    name: cloudcart-app
+    namespace: cloudcart
+roleRef:
+  kind: Role
+  apiVersion: rbac.authorization.k8s.io/v1
+  name: cloudcart-app-role
+
+---
+# Read-only role for developers (can view but not modify)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cloudcart-developer-role
+  namespace: cloudcart
+rules:
+  - apiGroups: ["", "apps", "autoscaling"]
+    resources: ["pods", "deployments", "services", "configmaps", "horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list"]

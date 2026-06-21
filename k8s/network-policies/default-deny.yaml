@@ -3,8 +3,9 @@ kind: NetworkPolicy
 metadata:
   name: default-deny-all
   namespace: cloudcart
+
 spec:
-  podSelector: {}      # Applies to ALL pods in the namespace
+  podSelector: {}
   policyTypes:
     - Ingress
     - Egress

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: cloudcart
+spec:
+  # ClusterIP = only accessible within the cluster
+  # MySQL should NEVER be exposed externally
+  type: ClusterIP
+  selector:
+    app: mysql      # Routes to Pods with this label
+  ports:
+    - port: 3306      # Port the Service exposes
+      targetPort: 3306 # Port the Pod listens on

@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: cloudcart
+  labels:
+    app: product-service
+spec:
+  replicas: 2   # Run 2 identical pods for high availability
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: product-service
+          image: cloudcart/product-service:latest
+          # imagePullPolicy: Never = use local Minikube image (not pull from registry)
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3002
+          env:
+            - name: PORT
+              value: "3002"
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: cloudcart-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: cloudcart-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: cloudcart-config
+                  key: DB_NAME
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: cloudcart-config
+                  key: NODE_ENV
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cloudcart-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudcart-secrets
+                  key: DB_PASSWORD

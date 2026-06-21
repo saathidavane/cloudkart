@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudcart
+  labels:
+    # Labels allow selectors and policies to target this namespace
+    app: cloudcart
+    environment: production

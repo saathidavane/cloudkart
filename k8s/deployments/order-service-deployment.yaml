@@ -31,6 +31,7 @@ spec:
   template:
     metadata:
       labels:
+        tier: backend
         app: order-service
         version: "1.0"
     spec:

@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudcart-ingress
+  namespace: cloudcart
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/subnets: subnet-00855a2807484dac7,subnet-0ee1ca6bf407ef8e0
+    alb.ingress.kubernetes.io/security-groups: sg-004e181d3180c5c5a
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 3001
+          - path: /api/products
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 3002
+          - path: /api/cart
+            pathType: Prefix
+            backend:
+              service:
+                name: cart-service
+                port:
+                  number: 3003
+          - path: /api/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 3004
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

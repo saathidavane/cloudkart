@@ -145,6 +145,12 @@ resource "aws_security_group" "rds" {
     protocol        = "tcp"
     security_groups = [aws_security_group.eks_nodes.id]
   }
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = ["sg-066261150bbe2891c"]
+  }
   egress {
     from_port   = 0
     to_port     = 0

@@ -10,6 +10,7 @@ metadata:
     alb.ingress.kubernetes.io/subnets: subnet-00855a2807484dac7,subnet-0ee1ca6bf407ef8e0
     alb.ingress.kubernetes.io/security-groups: sg-004e181d3180c5c5a
     alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:139023233927:certificate/18cb81af-79b9-4c5e-9181-b06aa6afb097
 spec:
   rules:
     - http:

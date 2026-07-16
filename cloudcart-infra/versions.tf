@@ -21,5 +21,5 @@ provider "aws" {
   region = var.aws_region
   # Uses the credentials from `aws configure` (default profile).
   # If you use a named profile instead, uncomment the line below:
-  # profile = "your-profile-name"
+  profile = var.aws_profile
 }

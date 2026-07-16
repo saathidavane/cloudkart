@@ -16,7 +16,7 @@ variable "rds_security_group_id" {
 variable "deletion_protection" {
   description = "Prevents accidental terraform destroy. Set to false right before you actually want to destroy the DB"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "multi_az" {

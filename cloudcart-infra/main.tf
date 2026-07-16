@@ -50,11 +50,7 @@ resource "aws_eks_addon" "ebs_csi" {
   service_account_role_arn = module.iam.ebs_csi_role_arn
 
   resolve_conflicts_on_create = "OVERWRITE"
-
-  depends_on = [
-    module.eks,
-    module.iam
-  ]
+  
 }
 
 # ---------------------------------------------------------------------------

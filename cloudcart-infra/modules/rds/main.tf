@@ -28,7 +28,7 @@ resource "aws_db_instance" "main" {
   storage_type      = "gp3"
 
   db_name  = "cloudcart"
-  username = "admin"
+  username = "cloudcart_user"
   password = random_password.db_password.result 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [var.rds_security_group_id]

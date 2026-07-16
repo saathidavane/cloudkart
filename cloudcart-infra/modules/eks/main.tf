@@ -31,7 +31,7 @@ resource "aws_eks_cluster" "main" {
 
 # EKS Add-ons
 resource "aws_eks_addon" "addons" {
-  for_each                    = toset(["vpc-cni", "coredns", "kube-proxy", "aws-ebs-csi-driver"])
+  for_each                    = toset(["vpc-cni", "coredns", "kube-proxy"])
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = each.key
   resolve_conflicts_on_create = "OVERWRITE"

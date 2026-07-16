@@ -50,7 +50,7 @@ spec:
       containers:
         - name: cart-service
           image: 139023233927.dkr.ecr.us-east-1.amazonaws.com/cloudcart/cart-service:v1
-          imagePullPolicy: Never   # Use local Minikube image
+          imagePullPolicy: Always   # Use local Minikube image
           
           ports:
             - containerPort: 3003
